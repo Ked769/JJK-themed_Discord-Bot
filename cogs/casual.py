@@ -84,7 +84,6 @@ class casual(commands.Cog):
         self.ai = {}
         self.num = 0
         self.client = OpenAI(api_key="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")
-        self.client = OpenAI(api_key="api-key")
         self.timer = 60
         self.jogo = {}
         self.naoya = {}
