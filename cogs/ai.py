@@ -6,6 +6,11 @@ import json
 import random
 import os
 import passives
+import neat
+import numpy as np
+import pickle
+import copy
+from neat.reporting import ReporterSet
 
 move = {}
 fight_key = {}
@@ -13,6 +18,30 @@ domain = {}
 active_domain = {}
 black_flash = {}
 black_flash_users = ["Yuji", "Yuji-awk"]
+generation = 0
+local_dir = os.path.dirname(__file__)
+config_path = os.path.join(local_dir, "config.txt")
+config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                config_path)
+# genomes = {}
+# genome_id = 768074971213725706
+# genome = neat.DefaultGenome(768074971213725706)
+# genome.configure_new(config.genome_config)
+# genome.fitness = 0
+# genomes[genome_id] = genome
+# with open(os.path.join('saved_genomes', f'gen_{generation}.pkl'), "wb") as f:
+#    pickle.dump(genomes, f)
+reporters = ReporterSet()
+species_set = neat.DefaultSpeciesSet(config.species_set_config, reporters)
+stagnation = neat.DefaultStagnation(config.stagnation_config, reporters)
+reproduction = neat.DefaultReproduction(config.reproduction_config, reporters, stagnation)
+num_games = 0
+
+
+def one_hot_encode(labels, num_classes):
+    return np.eye(num_classes)[labels]
+
 
 sets = open("characters.json", "r")
 character_data = json.load(sets)
@@ -22,14 +51,50 @@ def calculate_xp_for_next_level(level):
     return 2 ** (level - 1) * 100
 
 
-async def fight2(ctx, char, bot, key):
-    with open("profile_data.json", "r") as p:
-        profile_data = json.load(p)
+async def update_genome(member_id, genome):
+    with open(os.path.join('saved_genomes', f'gen_{generation}.pkl'), "rb") as f:
+        genomes = pickle.load(f)
+    genomes[member_id] = genome
+    with open(os.path.join('saved_genomes', f'gen_{generation}.pkl'), "wb") as f:
+        pickle.dump(genomes, f)
+
+
+async def evolution():
+    global num_games
+    global generation
+    num_games += 1
+    if num_games >= 40:
+        with open(os.path.join('saved_genomes', f'gen_{generation}.pkl'), "rb") as f:
+            previous_genomes = pickle.load(f)
+        trainers = open("ai_trainers.json", "r")
+        trainer_data = json.load(trainers)
+        previous_ids = list(trainer_data.keys())
+        print("before success")
+
+        species_set.speciate(config, previous_genomes, generation)
+        print("success")
+
+        next_genomes_raw = reproduction.reproduce(config, species_set, len(previous_ids), generation)
+        print("success1")
+        generation += 1
+        next_genomes = {}
+        for new_id, old_id in zip(next_genomes_raw.keys(), previous_ids):
+            next_genomes_raw[new_id].fitness  = 0
+            next_genomes[int(old_id)] = next_genomes_raw[new_id]
+        print(next_genomes)
+        print("success2")
+        with open(os.path.join('saved_genomes', f'gen_{generation}.pkl'), "wb") as f:
+            pickle.dump(next_genomes, f)
+        os.remove(os.path.join('saved_genomes', f'gen_{generation-1}.pkl'))
+        print("success3")
+        num_games = 0
+
+
+async def fight2(ctx, char, bot, key, genome, net):
 
     global dmg1, dmg2
     members = list(move[key].keys())
     member1_id = members[0]
-    data = profile_data[str(member1_id)]["Characters"][char[member1_id]]
 
     ability1 = character_data[char[member1_id]]["Moves"]
     ability2 = character_data[char["ai"]]["Moves"]
@@ -109,6 +174,7 @@ async def fight2(ctx, char, bot, key):
                 value2 = f"{move[key]['ai'][-1]} has dealt {dmg2} damage!"
             embed.add_field(name=f"{move[key]['ai'][0]} has used {move[key]['ai'][-1]}", value=value2)
             hp1 = hp1-dmg2
+            genome.fitness += dmg2*0.01
         else:
             embed.add_field(name=f"{move[key]['ai'][0]} has used {move[key]['ai'][-1]}", value=f"The attack has missed")
     elif name2 == "Ultimate":
@@ -116,7 +182,7 @@ async def fight2(ctx, char, bot, key):
         domain[key] = ['ai', char['ai']]
         embed.add_field(name=f"{move[key]['ai'][0]} has used their Ultimate", value=f"The battlefield has now shifted in their favour")
         await ctx.send(character_data[char['ai']]["Ultimate"][1])
-        dmg1 = int(ability1[name1][0] * (1+data['Stats'][1]*0.05) * character_data[char[member1.id]]["Stats"][1])
+        dmg1 = int(ability1[name1][0] * character_data[char[member1.id]]["Stats"][1])
         value1 = f"{move[key][member1.id][-1]} has dealt {dmg1} damage!"
         if active_domain[key]:
             if domain[key][0] == member1.id:
@@ -146,10 +212,11 @@ async def fight2(ctx, char, bot, key):
                 value1 = f"{move[key][member1.id][-1]} has dealt {dmg1} damage!"
             embed.add_field(name=f"{move[key][member1.id][0]} has used {move[key][member1.id][-1]}", value=value1)
             hp2 = hp2-dmg1
+            genome.fitness -= dmg1*0.01
         else:
             embed.add_field(name=f"{move[key][member1.id][0]} has used {move[key][member1.id][-1]}", value=f"The attack has missed!")
     else:
-        dmg1 = int(ability1[name1][0] * (1+data['Stats'][1]*0.05) * character_data[char[member1.id]]["Stats"][1])
+        dmg1 = int(ability1[name1][0] * character_data[char[member1.id]]["Stats"][1])
         value1 = f"{move[key][member1.id][-1]} has dealt {dmg1} damage!"
         if active_domain[key]:
             if domain[key][0] == member1.id:
@@ -179,6 +246,7 @@ async def fight2(ctx, char, bot, key):
                 value1 = f"{move[key][member1.id][-1]} has dealt {dmg1} damage!"
             embed.add_field(name=f"{move[key][member1.id][0]} has used {move[key][member1.id][-1]}", value=value1)
             hp2 = hp2-dmg1
+            genome.fitness -= dmg1*0.01
         else:
             embed.add_field(name=f"{move[key][member1.id][0]} has used {move[key][member1.id][-1]}", value=f"The attack has missed!")
         dmg2 = int(ability2[name2][0] * character_data[char['ai']]["Stats"][1])
@@ -212,26 +280,27 @@ async def fight2(ctx, char, bot, key):
                 value2 = f"{move[key]['ai'][-1]} has dealt {dmg2} damage!"
             embed.add_field(name=f"{move[key]['ai'][0]} has used {move[key]['ai'][-1]}", value=value2)
             hp1 = hp1-dmg2
+            genome.fitness += dmg2*0.01
         else:
             embed.add_field(name=f"{move[key]['ai'][0]} has used {move[key]['ai'][-1]}", value=f"The attack has missed")
 
-    member_win = False
     winner = discord.Embed(title=f"{member1.name} vs Curse", colour=discord.Colour.blue())
     if hp1 <= 0:
         if hp2 <= 0:
-            speed1 = (1+data['Stats'][2]*0.05) * character_data[char[member1.id]]["Stats"][2]
+            speed1 = character_data[char[member1.id]]["Stats"][2]
             speed2 = character_data[char['ai']]["Stats"][2]
             if speed1 > speed2:
                 winner.add_field(name=f"{move[key][member1.id][0]} has used {move[key][member1.id][-1]}", value=f"{move[key][member1.id][-1]} has dealt {dmg1} damage")
                 winner.add_field(name=f"{move[key]['ai'][0]} has fainted from the attack", value="They have lost")
                 await ctx.send(embed=winner)
                 await ctx.send(f"{member1.name} has won the battle")
-                member_win = True
+                genome.fitness -= 2
             elif speed2 > speed1:
                 winner.add_field(name=f"{move[key][member1.id][0]} has fainted from the attack", value=f"They have lost")
                 winner.add_field(name=f"{move[key]['ai'][0]} has used {move[key]['ai'][-1]}", value=f"{move[key]['ai'][-1]} has dealt {dmg2} damage")
                 await ctx.send(embed=winner)
-                await ctx.send(f"The Curse has won the battle")
+                await ctx.send(f"AOSAI has won the battle")
+                genome.fitness += 2
             elif speed1 == speed2:
                 anything = random.randint(1, 2)
                 if anything == 1:
@@ -239,38 +308,27 @@ async def fight2(ctx, char, bot, key):
                     winner.add_field(name=f"{move[key]['ai'][0]} has fainted from the attack", value="They have lost")
                     await ctx.send(embed=winner)
                     await ctx.send(f"{member1.name} has won the battle")
-                    member_win = True
+                    genome.fitness -= 2
                 else:
                     winner.add_field(name=f"{move[key][member1.id][0]} has fainted from the attack", value=f"They have lost")
                     winner.add_field(name=f"{move[key]['ai'][0]} has used {move[key]['ai'][-1]}", value=f"{move[key]['ai'][-1]} has dealt {dmg2} damage")
                     await ctx.send(embed=winner)
-                    await ctx.send(f"The Curse has won the battle")
+                    await ctx.send(f"AOSAI has won the battle")
+                    genome.fitness += 2
         else:
             winner.add_field(name=f"{move[key][member1.id][0]} has fainted from the attack", value=f"They have lost")
             winner.add_field(name=f"{move[key]['ai'][0]} has used {move[key]['ai'][-1]}", value=f"{move[key]['ai'][-1]} has dealt {dmg2} damage!")
             await ctx.send(embed=winner)
-            await ctx.send(f"The Curse has won the battle")
-        if member_win:
-            await ctx.send("You have been awarded with 100 coins for exorcising the cursed spirit :tada:")
-            with open("profile_data.json", "w") as f:
-                profile_data[str(member1.id)]["Money"] += 100
-                profile_data[str(member1.id)]["Characters"][char[member1.id]]['XP'] += 50
-                current_level = profile_data[str(member1.id)]["Characters"][char[member1.id]]["Level"]
-                next_level_xp = calculate_xp_for_next_level(current_level)
-
-                if profile_data[str(member1.id)]["Characters"][char[member1.id]]['XP'] >= next_level_xp:
-                    profile_data[str(member1.id)]["Characters"][char[member1.id]]['Level'] += 1
-                    profile_data[str(member1.id)]["Characters"][char[member1.id]]['XP'] = 0
-                    profile_data[str(member1.id)]["Characters"][char[member1.id]]['Points'] += 3
-                    await ctx.send(f"Congratulations {member1.mention}, your **{char[member1.id]}** reached level {profile_data[str(member1.id)]['Characters'][char[member1.id]]['Level']}!")
-
-                json.dump(profile_data, f)
+            await ctx.send(f"AOSAI has won the battle")
+            genome.fitness += 2
+        await update_genome(int(member1.id), genome)
+        await evolution()
         del move[key]
         del fight_key[key]
         del active_domain[key]
         del domain[key]
-        del black_flash[key]
         os.remove(f"{key}.jpg")
+        del black_flash[key]
     elif hp2 <= 0:
         if hp1 <= 0:
             speed1 = character_data[char[member1.id]]["Stats"][2]
@@ -280,12 +338,13 @@ async def fight2(ctx, char, bot, key):
                 winner.add_field(name=f"{move[key]['ai'][0]} has fainted from the attack", value="They have lost")
                 await ctx.send(embed=winner)
                 await ctx.send(f"{member1.name} has won the battle")
-                member_win = True
+                genome.fitness -= 2
             elif speed2 > speed1:
                 winner.add_field(name=f"{move[key][member1.id][0]} has fainted from the attack", value=f"They have lost")
                 winner.add_field(name=f"{move[key]['ai'][0]} has used {move[key]['ai'][-1]}", value=f"{move[key]['ai'][-1]} has dealt {dmg2} damage")
                 await ctx.send(embed=winner)
-                await ctx.send(f"The Curse has won the battle")
+                await ctx.send(f"AOSAI has won the battle")
+                genome.fitness += 2
             elif speed1 == speed2:
                 anything = random.randint(1, 2)
                 if anything == 1:
@@ -293,74 +352,95 @@ async def fight2(ctx, char, bot, key):
                     winner.add_field(name=f"{move[key]['ai'][0]} has fainted from the attack", value="They have lost")
                     await ctx.send(embed=winner)
                     await ctx.send(f"{member1.name} has won the battle")
-                    member_win = True
+                    genome.fitness -= 2
                 else:
                     winner.add_field(name=f"{move[key][member1.id][0]} has fainted from the attack", value=f"They have lost")
                     winner.add_field(name=f"{move[key]['ai'][0]} has used {move[key]['ai'][-1]}", value=f"{move[key]['ai'][-1]} has dealt {dmg2} damage")
                     await ctx.send(embed=winner)
-                    await ctx.send(f"The Curse has won the battle")
+                    await ctx.send(f"AOSAI has won the battle")
+                    genome.fitness += 2
         else:
             winner.add_field(name=f"{move[key][member1.id][0]} has used {move[key][member1.id][-1]}", value=f"{move[key][member1.id][-1]} has dealt {dmg1} damage")
             winner.add_field(name=f"{move[key]['ai'][0]} has fainted from the attack", value="They have lost")
             await ctx.send(embed=winner)
             await ctx.send(f"{member1.name} has won the battle")
-            member_win = True
-
-        if member_win:
-            await ctx.send("You have been awarded with 100 coins for exorcising the cursed spirit :tada:")
-            with open("profile_data.json", "w") as f:
-                profile_data[str(member1.id)]["Money"] += 100
-                profile_data[str(member1.id)]["Characters"][char[member1.id]]['XP'] += 50
-                current_level = profile_data[str(member1.id)]["Characters"][char[member1.id]]["Level"]
-                next_level_xp = calculate_xp_for_next_level(current_level)
-
-                if profile_data[str(member1.id)]["Characters"][char[member1.id]]['XP'] >= next_level_xp:
-                    profile_data[str(member1.id)]["Characters"][char[member1.id]]['Level'] += 1
-                    profile_data[str(member1.id)]["Characters"][char[member1.id]]['XP'] = 0
-                    profile_data[str(member1.id)]["Characters"][char[member1.id]]['Points'] += 3
-                    await ctx.send(f"Congratulations {member1.mention}, your **{char[member1.id]}** reached level {profile_data[str(member1.id)]['Characters'][char[member1.id]]['Level']}!")
-
-                json.dump(profile_data, f)
+            genome.fitness -= 2
+        await update_genome(int(member1.id), genome)
+        await evolution()
         del move[key]
         del fight_key[key]
         del active_domain[key]
         del domain[key]
-        del black_flash[key]
         os.remove(f"{key}.jpg")
+        del black_flash[key]
     else:
         move[key].clear()
         await ctx.send(embed=embed)
-        await fight(ctx, member1, char, bot, hp1, hp2)
+        await fight(ctx, member1, char, bot, genome, net, hp1, hp2)
 
 
-async def curseai(ctx, char, bot, key):
+async def aosai(ctx, char, bot, key, genome, net):
 
     members = list(move[key].keys())
     member1_id = members[0]
 
     hp = move[key][member1_id][1]
+    print(move[key][member1_id][0])
+
+    max_hp1 = int(260 * character_data[char[member1_id]]["Stats"][0])
+    max_hp2 = int(260 * character_data["Gojo"]["Stats"][0])
 
     options = []
-    for attack in character_data["Curse"]["Moves"]:
+    for attack in character_data["Gojo"]["Moves"]:
         options.append(attack)
+    options.append("Ultimate")
     print(options)
 
-    if fight_key[key] == 3:
-        move[key]["ai"].append("Ultimate")
-    elif hp > 100:
-        choice = random.choice(options[0:2])
-        print(choice)
-        move[key]["ai"].append(f"{choice}")
+    list_of_chars = ["Gojo", "Yuji", "Megumi", "Toji", "Geto", "Sukuna", "Naruto", "Madara", "Sasuke",
+                     "Jogo", "Goku", "Meliodas", "Yuji-awk", "Ichigo", "Sung-jin-woo", "Itachi", "Hitler"]
+    index = 0
+    for i in range(len(list_of_chars)):
+        if char[member1_id] == list_of_chars[i]:
+            index = i
+
+    opp_char = np.eye(16)[index]
+
+    if active_domain is not True:
+        is_domain = np.eye(3)[0]
+    elif active_domain and domain[key][0] == "ai":
+        is_domain = np.eye(3)[1]
     else:
-        choice = random.choice(options[2:4])
-        print(choice)
-        move[key]["ai"].append(f"{choice}")
-    await fight2(ctx, char, bot, key)
+        is_domain = np.eye(3)[2]
+
+    input_param = np.concatenate(([fight_key[key], hp/max_hp1, move[key]["ai"][1]/max_hp2], is_domain, opp_char))
+
+    output = net.activate(input_param)
+
+    selected = np.argmax(output)
+    if fight_key[key] < 3 and selected == 4:
+        genome.fitness -= 1
+        output[4] = -np.inf
+    if active_domain[key] and selected == 4:
+        genome.fitness -= 0.5
+        output[4] = -np.inf
+    selected = np.argmax(output)
+    move[key]["ai"].append(options[selected])
+    # if fight_key[key] == 3:
+    #     move[key]["ai"].append("Ultimate")
+    # elif hp > 100:
+    #     choice = random.choice(options[0:2])
+    #     print(choice)
+    #     move[key]["ai"].append(f"{choice}")
+    # else:
+    #     choice = random.choice(options[2:4])
+    #     print(choice)
+    #     move[key]["ai"].append(f"{choice}")
+    await fight2(ctx, char, bot, key, genome, net)
 
 
 # noinspection PyUnresolvedReferences
 class Moves(discord.ui.View):
-    def __init__(self, ctx, member, character, char, hp, bot):
+    def __init__(self, ctx, member, character, char, hp, bot, genome, net):
         super().__init__()
         self.member = member
         self.character = character
@@ -369,6 +449,8 @@ class Moves(discord.ui.View):
         self.hp = hp
         self.bot = bot
         self.create_attack()
+        self.genome = genome
+        self.net = net
 
     def create_attack(self):
         for attack in character_data[self.character]["Moves"]:
@@ -396,7 +478,7 @@ class Moves(discord.ui.View):
                         move_check += 1
                     except:
                         print("a")
-                await curseai(self.ctx, self.char, self.bot, key)
+                await aosai(self.ctx, self.char, self.bot, key, self.genome, self.net)
 
             button = discord.ui.Button(label=attack, style=discord.ButtonStyle.primary, custom_id=attack)
             self.add_item(button)
@@ -425,20 +507,17 @@ class Moves(discord.ui.View):
                     move_check += 1
                 except:
                     print("a")
-            await curseai(self.ctx, self.char, self.bot, key)
+            await aosai(self.ctx, self.char, self.bot, key, self.genome, self.net)
         else:
             await interaction.response.send_message(
                 f"You cannot use this yet, you will be able to use this in {3 - fight_key[key]} turns")
 
 
-async def fight(ctx, member1: discord.Member, char, bot, hp1=None, hp2=None):
-    with open("profile_data.json", "r") as p:
-        profile_data = json.load(p)
+async def fight(ctx, member1: discord.Member, char, bot, genome, net, hp1=None, hp2=None):
 
-    data = profile_data[str(member1.id)]["Characters"][char[member1.id]]
     if hp1 is None and hp2 is None:
-        hp1 = int(260 * (1 + data['Stats'][0] * 0.05) * character_data[char[member1.id]]["Stats"][0])
-        hp2 = int(260 * character_data["Curse"]["Stats"][0])
+        hp1 = int(260 * character_data[char[member1.id]]["Stats"][0])
+        hp2 = int(260 * character_data["Gojo"]["Stats"][0])
 
     in_fight = False
     key = ""
@@ -464,7 +543,7 @@ async def fight(ctx, member1: discord.Member, char, bot, hp1=None, hp2=None):
 
     # Open the overlay image
     character1 = os.path.join(characters_folder, f"{char[member1.id]}.png")
-    character2 = os.path.join(characters_folder, f"Curse.png")
+    character2 = os.path.join(characters_folder, f"Gojo.png")
     overlay1 = Image.open(character1)
     overlay2 = Image.open(character2)
 
@@ -490,28 +569,28 @@ async def fight(ctx, member1: discord.Member, char, bot, hp1=None, hp2=None):
         # noinspection PyTypeChecker
         file = discord.File(f, filename="result.jpg")
 
-    max_hp1 = int(260 * (1+data['Stats'][0]*0.05) * character_data[char[member1.id]]["Stats"][0])
-    max_hp2 = int(260 * character_data["Curse"]["Stats"][0])
+    max_hp1 = int(260 * character_data[char[member1.id]]["Stats"][0])
+    max_hp2 = int(260 * character_data["Gojo"]["Stats"][0])
 
-    embed = discord.Embed(title=f"Battle between {member1.name} and Curse", colour=discord.Colour.blue())
+    embed = discord.Embed(title=f"Battle between {member1.name} and AOSAI", colour=discord.Colour.blue())
     embed.add_field(name="",
                     value="Choose your moves in DMs. After both players have chosen, the move will be executed",
                     inline=False)
     embed.add_field(name=f"{member1.name}", value=f"{char[member1.id]}: {hp1}/{max_hp1} HP")
-    embed.add_field(name=f"Curse", value=f"Curse: {hp2}/{max_hp2} HP")
+    embed.add_field(name=f"Age of Sorcery", value=f"Gojo: {hp2}/{max_hp2} HP")
     embed.set_image(url=f"attachment://result.jpg")
     await ctx.send(embed=embed, file=file)
 
     fight_key[key] += 1
     move[key][member1.id] = [char[member1.id], hp1]
-    move[key]["ai"] = ["Curse", hp2]
+    move[key]["ai"] = ["Gojo", hp2]
 
     if fight_key[key] == 1:
         if char[member1.id] in black_flash_users:
             black_flash[key] = {}
             black_flash[key][member1.id] = 1
 
-    member1_view = Moves(ctx, member1, char[member1.id], char, hp1, bot)
+    member1_view = Moves(ctx, member1, char[member1.id], char, hp1, bot, genome, net)
     await member1.send(view=member1_view)
 
     member1_button_selected = False
@@ -534,11 +613,13 @@ async def fight(ctx, member1: discord.Member, char, bot, hp1=None, hp2=None):
 
 
 class CharacterDropdown(discord.ui.Select):
-    def __init__(self, ctx, author: discord.Member, bot):
+    def __init__(self, ctx, author: discord.Member, bot, genome, net):
         self.ctx = ctx
         self.author = author
         self.bot = bot
         self.char = {}
+        self.genome = genome
+        self.net = net
         options = [
             discord.SelectOption(label="Yuji", description="The One with an Unbreakable Will"),
             discord.SelectOption(label="Gojo", description="The Honoured One"),
@@ -571,11 +652,7 @@ class CharacterDropdown(discord.ui.Select):
         jinwoo_access = [1174422891765444628, 1203005496110620705, 1356996073209598044]
         itachi_access = [914136372951023617]
         hitler_access = [1094268904127352893, 359316332774162435]
-        with open("profile_data.json", "r") as f:
-            profile_data = json.load(f)
         if interaction.user.id == self.author.id:
-            if self.values[0] not in profile_data[str(self.author.id)]["Characters"]:
-                await interaction.response.send_message("You do not possess this character", ephemeral=True)
             if self.values[0] == "Naruto" and interaction.user.id not in naruto_access:
                 # noinspection PyUnresolvedReferences
                 await interaction.response.send_message(f"You cannot choose this character", ephemeral=True)
@@ -602,19 +679,21 @@ class CharacterDropdown(discord.ui.Select):
             # noinspection PyUnresolvedReferences
             await interaction.response.send_message(f"You are not a part of the battle", ephemeral=True)
         if self.author.id in self.char:
-            self.char["ai"] = "Curse"
+            self.char["ai"] = "Gojo"
             await interaction.message.delete()
             await self.ctx.send("The fight is about to begin")
-            await fight(self.ctx, self.author, self.char, self.bot)
+            await fight(self.ctx, self.author, self.char, self.bot, self.genome, self.net)
 
 
 class RPS(discord.ui.View):
-    def __init__(self, ctx, author: discord.Member, bot):
+    def __init__(self, ctx, author: discord.Member, bot, genome, net):
         super().__init__(timeout=30)
         self.value = None
         self.author = author
         self.ctx = ctx
         self.bot = bot
+        self.genome = genome
+        self.net = net
 
     @discord.ui.button(label="Yes", style=discord.ButtonStyle.green)
     async def yes(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -623,7 +702,7 @@ class RPS(discord.ui.View):
             await interaction.response.send_message(f"You are not {self.author.name}", ephemeral=True)
         else:
             fight_view = discord.ui.View()
-            fight_view.add_item(CharacterDropdown(self.ctx, self.author, self.bot))
+            fight_view.add_item(CharacterDropdown(self.ctx, self.author, self.bot, self.genome, self.net))
             embed = discord.Embed(title=f"The quest will begin once you choose your character",
                                   colour=discord.Colour.blue())
             embed.add_field(name="Choose your character",
@@ -643,222 +722,86 @@ class RPS(discord.ui.View):
             await interaction.message.delete()
 
 
-class quest(commands.Cog):
+class ai(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
 
     @commands.command()
-    async def quest(self, ctx):
-        with open("profile_data.json", "r") as f:
-            profile_data = json.load(f)
+    async def battleai(self, ctx):
+
+        trainers = open("ai_trainers.json", "r")
+        trainer_data = json.load(trainers)
+
+        if str(ctx.author.id) not in trainer_data:
+            with open(os.path.join('saved_genomes', f'gen_{generation}.pkl'), 'rb') as f:
+                saved_genomes = pickle.load(f)
+            genome = 123
+            if isinstance(saved_genomes, dict):
+                genome = random.choice(list(saved_genomes.values()))
+            else:
+                genome = random.choice([g for _, g in saved_genomes])
+            new_genome = copy.deepcopy(genome)
+            new_genome.key = int(ctx.author.id)
+            new_genome.mutate(config.genome_config)
+            new_genome.fitness = 0
+            saved_genomes[int(ctx.author.id)] = new_genome
+            with open(os.path.join('saved_genomes', f'gen_{generation}.pkl'), 'wb') as f:
+                pickle.dump(saved_genomes, f)
+            with open("ai_trainers.json", "w") as f:
+                trainer_data[str(ctx.author.id)] = "trainer"
+                json.dump(trainer_data, f)
 
         if str(ctx.author.id) in fight_key:
-            await ctx.send("You're already in a quest")
+            await ctx.send("You're already in a battle")
             return
 
-        if str(ctx.author.id) not in profile_data:
-            profile_data[id] = {}
-            profile_data[id]["Money"] = 0
-            profile_data[id]["Chapter"] = 1
-            profile_data[id]["Mission"] = 1
-            profile_data[id]["Characters"] = {}
-            profile_data[id]["Characters"]["Yuji"] = {"Level": 1, "XP": 0, "Stats": [0, 0, 0], "Points": 0}
-            with open('report.json', 'w') as p:
-                json.dump(profile_data, p)
+        with open(os.path.join('saved_genomes', f'gen_{generation}.pkl'), 'rb') as f:
+            saved_genomes = pickle.load(f)
 
-        view = RPS(ctx, ctx.author, self.bot)
-        await ctx.send(f"Do you wish to begin the quest?", view=view)
+        genome = saved_genomes[int(ctx.author.id)]
+        net = neat.nn.FeedForwardNetwork.create(genome, config)
+
+        view = RPS(ctx, ctx.author, self.bot, genome, net)
+        await ctx.send(f"Do you wish to battle against the bot?", view=view)
 
     @commands.command()
-    async def balance(self, ctx, *, member: discord.Member = None):
-        if member is None:
-            member = ctx.author
-
-        with open('profile_data.json', 'r') as f:
-            data = json.load(f)
-
-        embed = discord.Embed(title=f"{member.name}'s Profile", colour=member.colour, timestamp=ctx.message.created_at)
-        embed.set_thumbnail(url=member.avatar.url)
-        id = str(member.id)
-        if id in data:
-            list_chars = []
-            for character in data[str(member.id)]["Characters"]:
-                list_chars.append(f"{character} Lvl {data[str(member.id)]['Characters'][character]['Level']} \n")
-
-            embed.add_field(name="Credits:", value=f"{data[id]['Money']} coins", inline=False)
-            embed.add_field(name="Characters:", value=f"{''.join(list_chars)}", inline=False)
+    async def forfeitai(self, ctx):
+        in_fight = False
+        key = ""
+        for i in fight_key:
+            if str(ctx.author.id) in i.split(","):
+                in_fight = True
+                key = i
+        if in_fight:
+            del fight_key[key]
+            del move[key]
+            del domain[key]
+            del active_domain[key]
+            await ctx.send("You have forfeited the match")
         else:
-            data[id] = {}
-            data[id]["Money"] = 0
-            data[id]["Chapter"] = 1
-            data[id]["Mission"] = 1
-            data[id]["Characters"] = {}
-            data[id]["Characters"]["Yuji"] = {"Level": 1, "XP": 0, "Stats": [0, 0, 0], "Points": 0}
-            embed.add_field(name="Credits:", value=f"0 coins", inline=False)
-            embed.add_field(name="Characters:", value="Yuji Lvl 1", inline=False)
-            with open('report.json', 'w') as p:
-                json.dump(data, p)
-        embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.avatar.url)
-        await ctx.send(embed=embed)
-
-    @commands.command()
-    async def info(self, ctx, character):
-        character = character.lower()
-        character = character.capitalize()
-        moves = character_data[character]["Moves"]
-        stat = character_data[character]["Stats"]
-        attack_boost = stat[1]
-
-        with open("profile_data.json", "r") as f:
-            profile_data = json.load(f)
-
-        if str(ctx.author.id) not in profile_data:
-            profile_data[id] = {}
-            profile_data[id]["Money"] = 0
-            profile_data[id]["Chapter"] = 1
-            profile_data[id]["Mission"] = 1
-            profile_data[id]["Characters"] = {}
-            profile_data[id]["Characters"]["Yuji"] = {"Level": 1, "XP": 0, "Stats": [0, 0, 0], "Points": 0}
-            with open('report.json', 'w') as p:
-                json.dump(profile_data, p)
-
-        if character not in profile_data[str(ctx.author.id)]["Characters"]:
-            await ctx.send("You do not have this character")
-            return
-
-        current_directory = os.path.dirname(__file__)
-        characters_folder = os.path.join(current_directory, "characters")
-        # Open the overlay image
-        character1 = os.path.join(characters_folder, f"{character}.png")
-
-        with open(character1, 'rb') as f:
-            # noinspection PyTypeChecker
-            file = discord.File(f, filename="character.png")
-
-        data = profile_data[str(ctx.author.id)]["Characters"][character]
-        embed = discord.Embed(title=f"{character} Lvl {data['Level']}", colour=discord.Colour.blue(),
-                              timestamp=ctx.message.created_at)
-        embed.add_field(name=f"Stat Point Distribution:",
-                        value=f"HP: {int(data['Stats'][0])}\nAttack: {int(data['Stats'][1])}\nSpeed: {int(data['Stats'][2])}\n\nSpare Statpoints: {data['Points']}",
-                        inline=False)
-        move_info = []
-        for attack in moves:
-            move_info.append(
-                f"{attack} deals **{int(moves[attack][0] * (1+data['Stats'][1]*0.05) * attack_boost)}** damage with a **{moves[attack][1] * 10}%** chance\n")
-        embed.add_field(name="Moves:", value=f'{"".join(move_info)}', inline=False)
-        embed.set_thumbnail(url=f"attachment://character.png")
-        await ctx.send(file=file, embed=embed)
-
-    @commands.command(aliases=["addstats", "as"])
-    async def addstat(self, ctx, character, stat, points):
-        points = int(points)
-        character = character.lower()
-        character = character.capitalize()
-        with open("profile_data.json", "r") as f:
-            profile_data = json.load(f)
-
-        if str(ctx.author.id) not in profile_data:
-            profile_data[id] = {}
-            profile_data[id]["Money"] = 0
-            profile_data[id]["Chapter"] = 1
-            profile_data[id]["Mission"] = 1
-            profile_data[id]["Characters"] = {}
-            profile_data[id]["Characters"]["Yuji"] = {"Level": 1, "XP": 0, "Stats": [0, 0, 0], "Points": 0}
-            with open('report.json', 'w') as p:
-                json.dump(profile_data, p)
-
-        if character not in profile_data[str(ctx.author.id)]["Characters"]:
-            await ctx.send("You do not possess that character")
-            return
-
-        if points > profile_data[str(ctx.author.id)]["Characters"][character]["Points"]:
-            await ctx.send("You do not possess that many stat points")
-        else:
-            if stat.lower() == "hp" or stat.lower() == "health":
-                profile_data[str(ctx.author.id)]["Characters"][character]["Stats"][0] += points
-                profile_data[str(ctx.author.id)]["Characters"][character]["Points"] -= points
-                await ctx.send(f"Added {points} stat points to **HP** for **{character}**")
-            elif stat.lower() == "atk" or stat.lower() == "attack":
-                profile_data[str(ctx.author.id)]["Characters"][character]["Stats"][1] += points
-                profile_data[str(ctx.author.id)]["Characters"][character]["Points"] -= points
-                await ctx.send(f"Added {points} stat points to **Attack** for **{character}**")
-            elif stat.lower() == "spd" or stat.lower() == "speed":
-                profile_data[str(ctx.author.id)]["Characters"][character]["Stats"][2] += points
-                profile_data[str(ctx.author.id)]["Characters"][character]["Points"] -= points
-                await ctx.send(f"Added {points} stat points to **Speed** for **{character}**")
-            else:
-                await ctx.send(f"There is no stat named {stat}")
-
-        with open("profile_data.json", "w") as f:
-            json.dump(profile_data, f)
-
-    @commands.command()
-    async def shop(self, ctx):
-        with open("profile_data.json", "r") as f:
-            profile_data = json.load(f)
-
-        if str(ctx.author.id) not in profile_data:
-            profile_data[id] = {}
-            profile_data[id]["Money"] = 0
-            profile_data[id]["Chapter"] = 1
-            profile_data[id]["Mission"] = 1
-            profile_data[id]["Characters"] = {}
-            profile_data[id]["Characters"]["Yuji"] = {"Level": 1, "XP": 0, "Stats": [0, 0, 0], "Points": 0}
-            with open('report.json', 'w') as p:
-                json.dump(profile_data, p)
-
-        embed = discord.Embed(title="Character Shop", timestamp=ctx.message.created_at, color=discord.Colour.blue())
-        embed.add_field(name="Gojo", value="1500 coins")
-        embed.add_field(name="Sukuna", value="1500 coins")
-        embed.add_field(name="Megumi", value="1200 coins")
-        embed.add_field(name="Toji", value="1200 coins")
-        embed.add_field(name="Geto", value="1200 coins")
-        embed.add_field(name="Jogo", value="1200 coins")
-        await ctx.send(embed=embed)
-
-    @commands.command()
-    async def buy(self, ctx, character):
-        prices = {"Gojo": 1500, "Sukuna": 1500, "Megumi": 1200, "Toji": 1200, "Geto": 1200, "Jogo": 1200}
-
-        character = character.title()
-        with open("profile_data.json", "r") as f:
-            profile_data = json.load(f)
-
-        if str(ctx.author.id) not in profile_data:
-            profile_data[id] = {}
-            profile_data[id]["Money"] = 0
-            profile_data[id]["Chapter"] = 1
-            profile_data[id]["Mission"] = 1
-            profile_data[id]["Characters"] = {}
-            profile_data[id]["Characters"]["Yuji"] = {"Level": 1, "XP": 0, "Stats": [0, 0, 0], "Points": 0}
-            with open('report.json', 'w') as p:
-                json.dump(profile_data, p)
-
-        await ctx.send(f"Would you like to buy **{character}** for **{prices[character]}** coins? (y/n/yes/no)")
-
-        def check(message):
-            return message.author == ctx.author and message.channel == ctx.channel and message.content.lower() in ["y", "yes", "n", "no"]
-
-        try:
-            response = await self.bot.wait_for('message', timeout=20.0, check=check)
-        except asyncio.TimeoutError:
-            await ctx.send("Request timed out")
-            return
-
-        if response.content.lower() in ["y", "yes"]:
-            if prices[character] > profile_data[str(ctx.author.id)]["Money"]:
-                await ctx.send("Insufficient Funds")
-            else:
-                with open("profile_data.json", "w") as f:
-                    profile_data[str(ctx.author.id)]["Money"] -= prices[character]
-                    profile_data[str(ctx.author.id)]["Characters"][f"{character}"] = {"Level": 1, "XP": 0, "Stats": [0, 0, 0], "Points": 0}
-                    json.dump(profile_data, f)
-
-                await ctx.send(f"Successfully purchased **{character}** for **{prices[character]}** coins")
-        else:
-            await ctx.send("Purchase Cancelled")
+            await ctx.send("You aren't in a battle")
 
 
 async def setup(bot):
-    await bot.add_cog(quest(bot))
+    await bot.add_cog(ai(bot))
+
+
+def save_population(member_id, population, generation_number, folder='saved_genomes'):
+    for i, (genome_id, genome) in enumerate(population):
+        filename = f"{folder}/gen_{generation_number}_genome_{member_id}.pkl"
+        with open(filename, 'wb') as f:
+            pickle.dump(genome, f)
+
+
+def run(config_path):
+    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction,
+                                neat.DefaultSpeciesSet, neat.DefaultStagnation,
+                                config_path)
+    p = neat.Population(config)
+
+    p.add_reporter(neat.StdOutReporter(True))
+    stats = neat.StatisticsReporter()
+    p.add_reporter(stats)
+
+    # winner = p.run(main, 50) # input format p.run(function, max_generations)

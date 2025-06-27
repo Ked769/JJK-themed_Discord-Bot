@@ -83,7 +83,7 @@ class casual(commands.Cog):
         self.chimera = {}
         self.ai = {}
         self.num = 0
-        self.client = OpenAI(api_key="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")
+        self.client = OpenAI(api_key="api_key")
         self.timer = 60
         self.jogo = {}
         self.naoya = {}
@@ -297,7 +297,6 @@ class casual(commands.Cog):
             if message.author.id == member.id:
                 await member.add_roles(role)
                 await message.reply("Deal")
-        print(message.guild.id)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):

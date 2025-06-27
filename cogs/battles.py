@@ -514,13 +514,13 @@ class CharacterDropdown(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         naruto_access = [768074971213725706]
         madara_access = [782828284286337044, 768074971213725706, 667792981742321674, 751131698342789332, 1174422891765444628]
-        sasuke_access = [768074971213725706, 920290328811012096, 800305971132891166]
+        sasuke_access = [768074971213725706, 920290328811012096, 800305971132891166, 914136372951023617]
         meliodas_access = [751131698342789332]
         yujiawk_access = [782828284286337044]
         ichigo_access = [833928945082302495]
-        jinwoo_access = [1174422891765444628]
+        jinwoo_access = [1174422891765444628, 1203005496110620705, 1356996073209598044]
         itachi_access = [914136372951023617]
-        hitler_access = [628254382282244097, 1188831623907647613]
+        hitler_access = [1094268904127352893, 359316332774162435]
         if interaction.user.id == self.author.id:
             if self.values[0] == "Naruto" and interaction.user.id not in naruto_access:
                 # noinspection PyUnresolvedReferences
