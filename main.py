@@ -265,4 +265,4 @@ async def dmall2(ctx):
                 print("Couldnt DM")
         await ctx.send("Done")
 
-bot.run('token')
+bot.run(open("token.txt", "r").read().strip())
