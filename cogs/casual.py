@@ -83,7 +83,7 @@ class casual(commands.Cog):
         self.chimera = {}
         self.ai = {}
         self.num = 0
-        self.client = OpenAI(api_key="api_key")
+        self.client = OpenAI(api_key=open("openai_token.txt", "r").read().strip())
         self.timer = 60
         self.jogo = {}
         self.naoya = {}

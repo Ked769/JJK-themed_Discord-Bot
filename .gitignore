@@ -1,2 +1,7 @@
-token.txt
+discord_token.txt
+openai_token.txt
+main.py
 .venv
+ai_trainers.json
+profile_data.json
+.saved_genomes

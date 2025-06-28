@@ -21,6 +21,6 @@ async def load():
 
 async def main():
     await load()
-    await bot.start('token')
+    await bot.start(open("discord_token.txt", "r").read().strip())
 
 asyncio.run(main())
