@@ -155,11 +155,12 @@ class casual(commands.Cog):
             # noinspection PyArgumentList
             await channel.send(embed=embed)
 
-    @commands.command(help="Returns the ping")
+    @commands.command(help="🏓 Pong! Check if I'm alive and kicking with my response time!"
+)
     async def ping(self, ctx):
         await ctx.send(f"The ping is {round(self.bot.latency * 1000)}ms")
 
-    @commands.command(help="Returns the stats of the user")
+    @commands.command(help="🎭 Get the lowdown on any user! Shows their roles, join date, and more fun facts! 📊")
     async def userinfo(self, ctx, member: discord.Member = None):
         if member is None:
             member = ctx.author
@@ -187,7 +188,7 @@ class casual(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(help="Returns the server stats")
+    @commands.command(help="🏰 Server stats at your fingertips! Get all the juicy details about our awesome community! 📈")
     async def serverinfo(self, ctx):
         roles = []
         for role in ctx.guild.roles:
@@ -303,7 +304,7 @@ class casual(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             await ctx.send("I do not have any such command!\nType g!help to view available commands")
 
-    @commands.command(help="Declares you are AFK")
+    @commands.command(help="💤 Going AFK? Let everyone know! I'll tell them you're away when they mention you 🌙")
     async def afk(self, ctx, *args):
         if ctx.guild.id not in self.data:
             self.data[ctx.guild.id] = []
@@ -313,7 +314,7 @@ class casual(commands.Cog):
         await ctx.send("Afk set!")
         await ctx.author.edit(nick=f"[AFK] {ctx.author.display_name}")
 
-    @commands.command()
+    @commands.command(help = "ℹ️ Add some cool info to your profile! Make yourself stand out from the crowd! ✨")
     @commands.has_permissions(kick_members=True)
     async def inf(self, ctx):
         if ctx.guild.id not in self.inf:
@@ -326,7 +327,7 @@ class casual(commands.Cog):
         except:
             print("Owner Nickname")
 
-    @commands.command()
+    @commands.command(help = "🗑️ Want to remove your profile info? No problemo! Clean slate coming right up! 🧹")
     async def removeinf(self, ctx):
         self.inf[ctx.guild.id].remove(ctx.author.id)
         await ctx.send("Your infinity has been turned off manually")
@@ -334,7 +335,7 @@ class casual(commands.Cog):
         new_nick = ctx.author.display_name.split("[INF]")
         await ctx.author.edit(nick=new_nick[1])
 
-    @commands.command(aliases=['sd'])
+    @commands.command(aliases=['sd'], help = "🎯 Set your simple domain! Show off your specialty in style! 🌟")
     async def simpledomain(self, ctx):
         await ctx.send("You have activated your simple domain for the next 10min")
         await ctx.send("https://tenor.com/view/jujutsu-kaisen-domain-expansion-gif-21437690")
@@ -349,7 +350,7 @@ class casual(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             await ctx.send(f"You do not have the permissions to use this command")
 
-    @commands.command(help="DMs a user of your choice")
+    @commands.command(help="💌 Send a message through me! I'm your friendly neighborhood messenger bot! 📨")
     async def message(self, ctx, member: discord.Member, *arg):
         msg = " ".join(arg)
         await member.send(f"{ctx.author.display_name} left a message for you \n > {msg}")
@@ -361,7 +362,7 @@ class casual(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             await ctx.send(f"Cannot send messages to this user")
 
-    @commands.command(aliases=['av'])
+    @commands.command(aliases=['av'], help = "🖼️ Want to see someone's avatar in all its glory? I'll make it bigger and better! 🔍")
     async def avatar(self, ctx, member: discord.Member = None):
         sexy = [768074971213725706, 696704031023693914]
         if member is None:
@@ -377,7 +378,7 @@ class casual(commands.Cog):
             await asyncio.sleep(1)
             await ctx.send("Sexy")
 
-    @commands.command()
+    @commands.command(help = "📬 Send a DM to all members! Use with caution 💫")
     async def dmall1(self, ctx):
         if ctx.author.display_name == "Prodigy":
             await ctx.send("doing")
@@ -394,8 +395,10 @@ class casual(commands.Cog):
                 except:
                     print("Couldnt DM")
             await ctx.send("Done")
+        else:
+            await ctx.send("Unauthorised")
 
-    @commands.command()
+    @commands.command(help = "📫 Another way to DM all members! Different style, same awesome power! 🌠")
     async def dmall2(self, ctx):
         if ctx.author.display_name == "Prodigy":
             await ctx.send("doing")
@@ -410,15 +413,17 @@ class casual(commands.Cog):
                 except:
                     print("Couldnt DM")
             await ctx.send("Done")
+        else:
+            await ctx.send("Unauthorised")
 
-    @commands.command()
+    @commands.command(help = "🔧 Need permissions fixed? I'm your bot! Let me help you sort things out! 🛠️")
     async def fix(self, ctx, member: discord.Member):
         island_channel = discord.utils.get(ctx.guild.channels, id=1226849314735783956)
         for channel in ctx.guild.channels:
             await channel.set_permissions(member, overwrite=None)
         await island_channel.set_permissions(member, view_channel=False)
 
-    @commands.command()
+    @commands.command(help = "👀 Catch those deleted messages! I remember what others try to forget! 🕵️")
     async def snipe(self, ctx):
         print(self.snippet[ctx.guild.id])
         content = []
@@ -432,7 +437,7 @@ class casual(commands.Cog):
         embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.avatar.url)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["de", "domain"])
+    @commands.command(aliases=["de", "domain"], help = "⚔️ Domain Expansion! Channel your inner Jujutsu Kaisen sorcerer! 🔮")
     @commands.has_permissions(kick_members=True)
     @commands.cooldown(1, 30, commands.BucketType.user)
     async def domainexpansion(self, ctx, member: discord.Member, *args):
@@ -908,7 +913,7 @@ class casual(commands.Cog):
             await ctx.send("Due to an exhaustion of cursed technique, your domain is on a cooldown."
                            "Your cursed technique will return in **{:.2f}s**".format(error.retry_after))
 
-    @commands.command()
+    @commands.command(help = "🤖 Chat with AI! Ask questions, get answers, have fun! 🧠")
     @commands.cooldown(1, 400, commands.BucketType.user)
     async def ai(self, ctx):
         if ctx.guild.id in self.ai:
@@ -922,7 +927,7 @@ class casual(commands.Cog):
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.send("Your cooldown will end after **{:.2f}s**".format(error.retry_after))
 
-    @commands.command()
+    @commands.command(help = "🚫 Need to stop the AI? I'll help you shut it down safely! 🔒")
     @commands.has_permissions(kick_members=True)
     async def kickai(self, ctx):
         if ctx.guild.id in self.ai:
