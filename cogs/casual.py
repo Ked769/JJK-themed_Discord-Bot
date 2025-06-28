@@ -155,11 +155,11 @@ class casual(commands.Cog):
             # noinspection PyArgumentList
             await channel.send(embed=embed)
 
-    @commands.command(help="Returns the ping")
+    @commands.command(help="🏓 Pong! Check if I'm alive and kicking with my response time!")
     async def ping(self, ctx):
         await ctx.send(f"The ping is {round(self.bot.latency * 1000)}ms")
 
-    @commands.command(help="Returns the stats of the user")
+    @commands.command(help="🎭 Get the lowdown on any user! Shows their roles, join date, and more fun facts! 📊")
     async def userinfo(self, ctx, member: discord.Member = None):
         if member is None:
             member = ctx.author
@@ -187,7 +187,7 @@ class casual(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.command(help="Returns the server stats")
+    @commands.command(help="🏰 Server stats at your fingertips! Get all the juicy details about our awesome community! 📈")
     async def serverinfo(self, ctx):
         roles = []
         for role in ctx.guild.roles:
@@ -303,8 +303,8 @@ class casual(commands.Cog):
         if isinstance(error, commands.CommandNotFound):
             await ctx.send("I do not have any such command!\nType g!help to view available commands")
 
-    @commands.command(help="Declares you are AFK")
-    async def afk(self, ctx, *args):
+    @commands.command(help="💤 Going AFK? Let everyone know! I'll tell them you're away when they mention you 🌙")
+    async def afk(self, ctx, *, reason=None):
         if ctx.guild.id not in self.data:
             self.data[ctx.guild.id] = []
         msg = " ".join(args)
@@ -313,9 +313,8 @@ class casual(commands.Cog):
         await ctx.send("Afk set!")
         await ctx.author.edit(nick=f"[AFK] {ctx.author.display_name}")
 
-    @commands.command()
-    @commands.has_permissions(kick_members=True)
-    async def inf(self, ctx):
+    @commands.command(help="ℹ️ Add some cool info to your profile! Make yourself stand out from the crowd! ✨")
+    async def inf(self, ctx, *, information):
         if ctx.guild.id not in self.inf:
             self.inf[ctx.guild.id] = []
         self.inf[ctx.guild.id].append(ctx.author.id)
@@ -326,7 +325,7 @@ class casual(commands.Cog):
         except:
             print("Owner Nickname")
 
-    @commands.command()
+    @commands.command(help="🗑️ Want to remove your profile info? No problemo! Clean slate coming right up! 🧹")
     async def removeinf(self, ctx):
         self.inf[ctx.guild.id].remove(ctx.author.id)
         await ctx.send("Your infinity has been turned off manually")
@@ -334,8 +333,8 @@ class casual(commands.Cog):
         new_nick = ctx.author.display_name.split("[INF]")
         await ctx.author.edit(nick=new_nick[1])
 
-    @commands.command(aliases=['sd'])
-    async def simpledomain(self, ctx):
+    @commands.command(help="🎯 Set your simple domain! Show off your specialty in style! 🌟")
+    async def simpledomain(self, ctx, *, domain):
         await ctx.send("You have activated your simple domain for the next 10min")
         await ctx.send("https://tenor.com/view/jujutsu-kaisen-domain-expansion-gif-21437690")
         if ctx.guild.id not in self.simple_domain:
@@ -349,8 +348,8 @@ class casual(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             await ctx.send(f"You do not have the permissions to use this command")
 
-    @commands.command(help="DMs a user of your choice")
-    async def message(self, ctx, member: discord.Member, *arg):
+    @commands.command(help="💌 Send a message through me! I'm your friendly neighborhood messenger bot! 📨")
+    async def message(self, ctx, member: discord.Member, *, message):
         msg = " ".join(arg)
         await member.send(f"{ctx.author.display_name} left a message for you \n > {msg}")
         await ctx.channel.purge(limit=1)
@@ -361,7 +360,7 @@ class casual(commands.Cog):
         if isinstance(error, commands.CommandInvokeError):
             await ctx.send(f"Cannot send messages to this user")
 
-    @commands.command(aliases=['av'])
+    @commands.command(help="🖼️ Want to see someone's avatar in all its glory? I'll make it bigger and better! 🔍")
     async def avatar(self, ctx, member: discord.Member = None):
         sexy = [768074971213725706, 696704031023693914]
         if member is None:
@@ -377,8 +376,8 @@ class casual(commands.Cog):
             await asyncio.sleep(1)
             await ctx.send("Sexy")
 
-    @commands.command()
-    async def dmall1(self, ctx):
+    @commands.command(help="📬 Send a DM to all members! Use with caution - it's super powerful! 💫")
+    async def dmall1(self, ctx, *, message):
         if ctx.author.display_name == "Prodigy":
             await ctx.send("doing")
             for member in ctx.guild.members:
@@ -395,8 +394,8 @@ class casual(commands.Cog):
                     print("Couldnt DM")
             await ctx.send("Done")
 
-    @commands.command()
-    async def dmall2(self, ctx):
+    @commands.command(help="📫 Another way to DM all members! Different style, same awesome power! 🌠")
+    async def dmall2(self, ctx, *, message):
         if ctx.author.display_name == "Prodigy":
             await ctx.send("doing")
             for member in ctx.guild.members:
@@ -411,14 +410,14 @@ class casual(commands.Cog):
                     print("Couldnt DM")
             await ctx.send("Done")
 
-    @commands.command()
-    async def fix(self, ctx, member: discord.Member):
+    @commands.command(help="🔧 Need something fixed? I'm your bot! Let me help you sort things out! 🛠️")
+    async def fix(self, ctx):
         island_channel = discord.utils.get(ctx.guild.channels, id=1226849314735783956)
         for channel in ctx.guild.channels:
             await channel.set_permissions(member, overwrite=None)
         await island_channel.set_permissions(member, view_channel=False)
 
-    @commands.command()
+    @commands.command(help="👀 Catch those deleted messages! I remember what others try to forget! 🕵️")
     async def snipe(self, ctx):
         print(self.snippet[ctx.guild.id])
         content = []
@@ -432,10 +431,8 @@ class casual(commands.Cog):
         embed.set_footer(text=f"Requested by {ctx.author}", icon_url=ctx.author.avatar.url)
         await ctx.send(embed=embed)
 
-    @commands.command(aliases=["de", "domain"])
-    @commands.has_permissions(kick_members=True)
-    @commands.cooldown(1, 30, commands.BucketType.user)
-    async def domainexpansion(self, ctx, member: discord.Member, *args):
+    @commands.command(help="⚔️ Domain Expansion! Channel your inner Jujutsu Kaisen sorcerer! 🔮")
+    async def domainexpansion(self, ctx):
         if ctx.guild.id in self.simple_domain:
             if member.id in self.simple_domain[ctx.guild.id]:
                 await ctx.send("https://tenor.com/view/gojo-simple-domain-gif-2899725885283227519")
@@ -541,396 +538,4 @@ class casual(commands.Cog):
 
         elif domain == domains[5]:
             await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-            await ctx.send("https://tenor.com/view/megumi-fushiguro-domain-expansion-ry%C5%8Diki-tenkai-chimera-shadow-garden-gif-25681375")
-            if member.top_role >= ctx.author.top_role:
-                await asyncio.sleep(1)
-                await ctx.send("The domain has crumbled")
-            else:
-                await asyncio.sleep(1)
-                if ctx.guild.id not in self.chimera:
-                    self.chimera[ctx.guild.id] = []
-                self.chimera[ctx.guild.id].append(member.id)
-                await ctx.send(f"Due to the effects of the domain **{member.name}** has drowned in the shadows for the next 3 minutes")
-                await asyncio.sleep(180)
-                self.chimera[ctx.guild.id].remove(member.id)
-
-        elif domain == domains[6]:
-            dagon = {1209560942841434142: 1226849314735783956, 1221289127547244594: 1226849791900913726, 1030538747827208322: 1226263040962465904, 1122290976938016792: 1228693777279881369}
-            await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-            await ctx.send("https://tenor.com/view/jjk-season-2-dagon-gif-65005131711436483")
-            if member.top_role >= ctx.author.top_role:
-                await asyncio.sleep(1)
-                await ctx.send("The domain has crumbled")
-            else:
-                dagon_id = dagon[ctx.guild.id]
-                island_channel = discord.utils.get(ctx.guild.channels, id=dagon_id)
-                await asyncio.sleep(1)
-                await ctx.send(f"Due to the effects of the domain **{member.name}** has now been locked up in Dagon's Island for the next 5 minutes.")
-                for channel in ctx.guild.channels:
-                    await channel.set_permissions(member, view_channel=False)
-
-                await island_channel.set_permissions(member, view_channel=True)
-
-                await asyncio.sleep(300)
-
-                for channel in ctx.guild.channels:
-                    await channel.set_permissions(member, overwrite=None)
-                await island_channel.set_permissions(member, view_channel=False)
-
-        elif domain == domains[7]:
-            await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-            await ctx.send("https://tenor.com/view/jogo-jjk-jogoat-jogo-jjk-jujutsu-kaisen-gif-8418099397022761053")
-            if member.top_role >= ctx.author.top_role:
-                await asyncio.sleep(1)
-                await ctx.send("The domain has crumbled")
-            else:
-                await asyncio.sleep(1)
-                if ctx.guild.id not in self.jogo:
-                    self.jogo[ctx.guild.id] = []
-                self.jogo[ctx.guild.id].append(member.id)
-                await ctx.send(f"Due to the effects of the domain **{member.name}** has now been surrounded by Lava for the next 5 minutes.")
-                await asyncio.sleep(300)
-                self.jogo[ctx.guild.id].remove(member.id)
-
-        elif domain == domains[8]:
-            await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-            await ctx.send("https://tenor.com/view/zenin-naoya-naoya-zenin-zenin-naoya-jujutsu-kaisen-gif-9815175286766632495")
-            if member.top_role >= ctx.author.top_role:
-                await asyncio.sleep(1)
-                await ctx.send("The domain has crumbled")
-            else:
-                await asyncio.sleep(1)
-                if ctx.guild.id not in self.naoya:
-                    self.naoya[ctx.guild.id] = {}
-                self.naoya[ctx.guild.id][member.id] = 1
-                await ctx.send(f"Due to the effects of the domain the rules of 24fps have been applied to **{member.name}** for the next 10 minutes")
-                await asyncio.sleep(600)
-                del self.naoya[ctx.guild.id][member.id]
-
-        elif domain == domains[9]:
-            copy = random.choice(domains[0:9])
-            await ctx.send(f"With the power of Mimicry **{ctx.author}** is displaying the powers of **{copy}**")
-            await asyncio.sleep(1)
-
-            if copy == domains[0]:
-                await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-                await ctx.send("https://tenor.com/view/infinite-void-gojo-satoru-gojo-jjk-jujutsu-kaisen-gif-19219956")
-                if member.top_role >= ctx.author.top_role:
-                    await asyncio.sleep(1)
-                    await ctx.send("The domain has crumbled")
-                else:
-                    newtime = datetime.timedelta(seconds=600)
-                    await member.edit(timed_out_until=discord.utils.utcnow() + newtime)
-                    await asyncio.sleep(1)
-                    await ctx.send(
-                        f"Due to the effects of the domain **{member.name}** is unable to move for 10 minutes")
-
-            elif copy == domains[1]:
-                await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-                await ctx.send(
-                    f"https://tenor.com/view/sukuna-domain-expansion-jujustu-kaisen-shibuya-sukuna-vs-mahoraga-gif-3966585850028273519")
-                if member.top_role >= ctx.author.top_role:
-                    await asyncio.sleep(1)
-                    await ctx.send("The domain has crumbled")
-                else:
-                    await member.remove_roles(member.top_role)
-                    await asyncio.sleep(1)
-                    await ctx.send(f"Due to effects of the domain **{member.name}** has lost their greatest strength")
-
-            elif copy == domains[2]:
-                await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-                await ctx.send(
-                    "https://tenor.com/view/jjk-jujutsu-kaisen-mahito-jjk-fight-jujutsu-kaisen-fight-gif-693993311493234171")
-                if member.top_role >= ctx.author.top_role:
-                    await asyncio.sleep(1)
-                    await ctx.send("The domain has crumbled")
-                else:
-                    await asyncio.sleep(1)
-                    await member.edit(nick=f"Transfigured Human")
-                    await ctx.send(f"Due to the effects of the domain **{member.name}** has lost their humanity")
-
-            elif copy == domains[3]:
-                await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-                await ctx.send(
-                    f"https://tenor.com/view/hakari-kinji-kinji-hakari-hakari-kinji-kashimo-hajime-gif-15995875640514955845")
-                if member.top_role >= ctx.author.top_role:
-                    await asyncio.sleep(1)
-                    await ctx.send("The domain has crumbled")
-                else:
-                    chance = random.randint(1, 10)
-                    await asyncio.sleep(1)
-                    message = await ctx.send("Attemping to attain Jackpot...")
-                    async with ctx.typing():
-                        await asyncio.sleep(5)
-                    if chance == 5:
-                        await asyncio.sleep(5)
-                        await message.edit("Jackpot has been attained")
-                        await ctx.send(
-                            "https://tenor.com/view/hakari-hakari-kinji-kinji-hakari-kinji-jackpot-gif-12339332929838481118")
-                        await asyncio.sleep(1)
-                        await ctx.send(
-                            f"Due to the effects of the domain **{member.name}** has been banished from the server")
-                        await ctx.guild.ban(member)
-                    else:
-                        await ctx.send("Failed to attain jackpot")
-            elif copy == domains[4]:
-                await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-                await ctx.send("https://tenor.com/view/jujutsu-kaisen-hanami-gif-20361654")
-                if member.top_role >= ctx.author.top_role:
-                    await asyncio.sleep(1)
-                    await ctx.send("The domain has crumbled")
-                else:
-                    await asyncio.sleep(1)
-                    name = member.display_name
-                    new_name = name[::-1]
-                    await member.edit(nick=f"🌳{new_name}🌳")
-                    await ctx.send(f"Due to the effects of the domain **{member.name}** has started sprouting")
-            elif copy == domains[5]:
-                await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-                await ctx.send(
-                    "https://tenor.com/view/megumi-fushiguro-domain-expansion-ry%C5%8Diki-tenkai-chimera-shadow-garden-gif-25681375")
-                if member.top_role >= ctx.author.top_role:
-                    await asyncio.sleep(1)
-                    await ctx.send("The domain has crumbled")
-                else:
-                    await asyncio.sleep(1)
-                    if ctx.guild.id not in self.chimera:
-                        self.chimera[ctx.guild.id] = []
-                    self.chimera[ctx.guild.id].append(member.id)
-                    await ctx.send(
-                        f"Due to the effects of the domain **{member.name}** has drowned in the shadows for the next 3 minutes")
-                    await asyncio.sleep(180)
-                    self.chimera[ctx.guild.id].remove(member.id)
-            elif copy == domains[6]:
-                dagon = {1209560942841434142: 1226849314735783956, 1221289127547244594: 1226849791900913726, 1030538747827208322: 1226263040962465904, 1122290976938016792: 1228693777279881369}
-                await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-                await ctx.send("https://tenor.com/view/jjk-season-2-dagon-gif-65005131711436483")
-                if member.top_role >= ctx.author.top_role:
-                    await asyncio.sleep(1)
-                    await ctx.send("The domain has crumbled")
-                else:
-                    dagon_id = dagon[ctx.guild.id]
-                    island_channel = discord.utils.get(ctx.guild.channels, id=dagon_id)
-                    await asyncio.sleep(1)
-                    await ctx.send(
-                        f"Due to the effects of the domain **{member.name}** has now been locked up in Dagon's Island for the next 5 minutes.")
-                    for channel in ctx.guild.channels:
-                        await channel.set_permissions(member, view_channel=False)
-
-                    await island_channel.set_permissions(member, view_channel=True)
-
-                    await asyncio.sleep(300)
-
-                    for channel in ctx.guild.channels:
-                        await channel.set_permissions(member, overwrite=None)
-                    await island_channel.set_permissions(member, view_channel=False)
-
-            elif copy == domains[7]:
-                await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-                await ctx.send("https://tenor.com/view/jogo-jjk-jogoat-jogo-jjk-jujutsu-kaisen-gif-8418099397022761053")
-                if member.top_role >= ctx.author.top_role:
-                    await asyncio.sleep(1)
-                    await ctx.send("The domain has crumbled")
-                else:
-                    await asyncio.sleep(1)
-                    if ctx.guild.id not in self.jogo:
-                        self.jogo[ctx.guild.id] = []
-                    self.jogo[ctx.guild.id].append(member.id)
-                    await ctx.send(
-                        f"Due to the effects of the domain **{member.name}** has now been surrounded by Lava for the next 5 minutes.")
-                    await asyncio.sleep(300)
-                    self.jogo[ctx.guild.id].remove(member.id)
-            elif copy == domains[8]:
-                await ctx.send(f"{ctx.author.mention} has expanded their domain on {member.mention}")
-                await ctx.send(
-                    "https://tenor.com/view/zenin-naoya-naoya-zenin-zenin-naoya-jujutsu-kaisen-gif-9815175286766632495")
-                if member.top_role >= ctx.author.top_role:
-                    await asyncio.sleep(1)
-                    await ctx.send("The domain has crumbled")
-                else:
-                    await asyncio.sleep(1)
-                    if ctx.guild.id not in self.naoya:
-                        self.naoya[ctx.guild.id] = {}
-                    self.naoya[ctx.guild.id][member.id] = 1
-                    await ctx.send(
-                        f"Due to the effects of the domain the rules of 24fps have been applied to **{member.name}** for the next 10 minutes")
-                    await asyncio.sleep(600)
-                    del self.naoya[ctx.guild.id][member.id]
-
-        elif domain == domains[10]:
-            if ctx.author.id == 532631056856252436:
-                await ctx.send(f"**{ctx.author}** has attained power which transcends the realm of humanity")
-                await ctx.send(f"https://tenor.com/view/dragon-ball-dragon-ball-super-anime-goku-son-goku-gif-17723848")
-                await asyncio.sleep(1)
-                await ctx.send(
-                    f"{ctx.author.mention} unleashes the overwhelming force of their godly ki on {member.mention}")
-                await asyncio.sleep(1)
-                await ctx.send(f"# KA")
-                await asyncio.sleep(1)
-                await ctx.send(f"# ME")
-                await asyncio.sleep(1)
-                await ctx.send(f"# HA")
-                await asyncio.sleep(1)
-                await ctx.send(f"# ME")
-                await asyncio.sleep(1)
-                await ctx.send("https://tenor.com/view/dragon-ball-super-goku-kamehameha-wave-gif-14323063")
-                await member.remove_roles(member.top_role)
-                newtime = datetime.timedelta(seconds=3600)
-                await member.edit(timed_out_until=discord.utils.utcnow() + newtime)
-                await ctx.send(
-                    f"Due to being unable to handle **{ctx.author}'s** godly presence, **{member}** has been crippled for 1 hour "
-                    f"and lost their greatest strength")
-
-            else:
-                await ctx.send("You are incapable of attaining this power")
-
-        elif domain == domains[11]:
-            if ctx.author.id == 768074971213725706:
-                await ctx.send(f"**{ctx.author}** opens their heart up to **{member}**")
-                await ctx.send(f"https://tenor.com/view/naruto-naruto-shippuden-sihouette-obito-gif-21952328")
-                await asyncio.sleep(1)
-                view = Talk(ctx, ctx.author, member)
-                await ctx.send("Will you hear out their heartfelt request?", view=view)
-            else:
-                await ctx.send("Only those that have accepted their own hatred are capable of accepting the hatred of others.")
-                await ctx.send("https://tenor.com/view/naruto-cool-gif-21575460")
-
-        elif domain == domains[12]:
-            users = [768074971213725706, 667792981742321674, 602246192491135008]
-            if ctx.author.id in users:
-                await ctx.send(f"**{ctx.author}** unleashes the full force of their conqueror's haki on the chat")
-                await ctx.send("https://tenor.com/view/luffy-luffy-smile-one-piece-luffy-haki-gif-23016302")
-                await asyncio.sleep(1)
-                messages = [message async for message in ctx.history(limit=25)]
-                authors = {message.author for message in messages}
-                for author in authors:
-                    if ctx.author.id == author.id:
-                        print("ok")
-                    elif author.id == 1034081315991080990:
-                        print("ok")
-                    elif ctx.guild.id in self.simple_domain:
-                        if author.id in self.simple_domain[ctx.guild.id]:
-                            await ctx.send(f"**{author.name}** has blocked off the haki using their simple domain")
-                        else:
-                            try:
-                                newtime = datetime.timedelta(seconds=600)
-                                await author.edit(timed_out_until=discord.utils.utcnow() + newtime)
-                                await ctx.send(f"**{author.name}** has succumbed to the overwhelming pressure")
-                            except:
-                                await ctx.send(f"**{author.name}** has withstood the conqueror's haki")
-                                continue
-                    elif ctx.author.top_role > author.top_role:
-                        try:
-                            newtime = datetime.timedelta(seconds=600)
-                            await author.edit(timed_out_until=discord.utils.utcnow() + newtime)
-                            await ctx.send(f"**{author.name}** has succumbed to the overwhelming pressure")
-                        except:
-                            await ctx.send(f"**{author.name}** has withstood the conqueror's haki")
-                            continue
-                    else:
-                        await ctx.send(f"**{author.name}** has withstood the conqueror's haki")
-            else:
-                await ctx.send("Only one in a million people possess the Colour of a King")
-        elif domain == domains[13]:
-            users = [696704031023693914]
-            if ctx.author.id in users:
-                await ctx.send(f"**{ctx.author}** unleashes their masterful swordsmanship on the **{member}**")
-                await ctx.send(f"https://tenor.com/view/muichiro-demon-slayer-gif-8980385408939188978")
-                if member.top_role >= ctx.author.top_role:
-                    await asyncio.sleep(1)
-                    await ctx.send("The domain has crumbled")
-                else:
-                    await asyncio.sleep(1)
-                    name = member.display_name
-                    new_name = ""
-                    for letter in name:
-                        new_name += f"/{letter}"
-                    await member.edit(nick=new_name)
-                    await ctx.send(f"**{member.name}** has been sliced up into pieces")
-            else:
-                await ctx.send("Fuck off, only 13 can use this")
-        elif domain == domains[14]:
-            tsukuyomi = {1030538747827208322: 1244706746946293902}
-            access = [602246192491135008, 768074971213725706]
-            in_tsukuyomi = []
-            if ctx.author.id not in access:
-                await ctx.send("You lack the visual prowess to use a genjutsu of this calibre")
-            else:
-                await ctx.send(f"{ctx.author.mention} has expanded their domain on the chat")
-                await ctx.send("https://tenor.com/view/madara-infinite-tsukuyomi-naruto-remake-studio-pierrot-gif-26867770")
-                tsukuyomi_id = tsukuyomi[ctx.guild.id]
-                tsukuyomi_channel = discord.utils.get(ctx.guild.channels, id=tsukuyomi_id)
-                messages = [message async for message in ctx.history(limit=25)]
-                authors = {message.author for message in messages}
-                for author in authors:
-                    if ctx.author.id == author.id:
-                        print("ok")
-                    elif author.id == 1034081315991080990:
-                        print("ok")
-                    elif ctx.author.top_role > author.top_role:
-                        await ctx.send(f"Due to the effects of the domain **{author.name}** has been sent to a World of Dreams for the next 5 minutes.")
-                        for channel in ctx.guild.channels:
-                            await channel.set_permissions(author, view_channel=False)
-
-                        in_tsukuyomi.append(author.id)
-                        await tsukuyomi_channel.set_permissions(author, view_channel=True)
-                    elif ctx.guild.id in self.simple_domain:
-                        if author.id in self.simple_domain[ctx.guild.id]:
-                            await ctx.send(f"**{author.name}** has blocked off the genjutsu using their simple domain")
-                    else:
-                        await ctx.send(f"Due to the effects of the domain **{author.name}** has been sent to a World of Dreams for the next 5 minutes.")
-                        in_tsukuyomi.append(author.id)
-                        for channel in ctx.guild.channels:
-                            await channel.set_permissions(author, view_channel=False)
-
-                            await tsukuyomi_channel.set_permissions(author, view_channel=True)
-
-                await asyncio.sleep(10)
-                for victimid in in_tsukuyomi:
-                    victim = discord.utils.get(ctx.guild.members, id=victimid)
-                    for channel in ctx.guild.channels:
-                        await channel.set_permissions(victim, overwrite=None)
-                    await tsukuyomi_channel.set_permissions(victim, view_channel=False)
-        else:
-            await ctx.send("Enter the correct domain name")
-
-    @domainexpansion.error
-    async def domainexpansion_error(self, ctx, error):
-        if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(
-                f"Enter information in the format:\n ```g!de [member mention] [domain name] \nAvailable Domains: Infinite Void, Malevolent Shrine,"
-                f"Self Embodiment of Perfection, Idle Death Gamble, Ceremonial Sea of Light, Chimera Shadow Garden, Horizon of the Captivating Skandha, Coffin of the Iron Mountain, Time Cell Moon Palace,"
-                f" True Mutual Love"
-                f"\nSpecial Domains: Kamehameha, Talk No Jutsu, Conquerors Haki, Mist Breathing, Infinite Tsukuyomi```")
-        elif isinstance(error, commands.MissingPermissions):
-            await ctx.send(f"You do not have the permissions to use this command")
-        elif isinstance(error, commands.CommandOnCooldown):
-            await ctx.send("Due to an exhaustion of cursed technique, your domain is on a cooldown."
-                           "Your cursed technique will return in **{:.2f}s**".format(error.retry_after))
-
-    @commands.command()
-    @commands.cooldown(1, 400, commands.BucketType.user)
-    async def ai(self, ctx):
-        if ctx.guild.id in self.ai:
-            await ctx.send("Someone else is currently using the bot, wait till their session ends")
-        else:
-            await ctx.send("The chatbot has been enabled, type 'quit' if you want the bot to stop responding to you")
-            self.ai[ctx.guild.id] = ctx.author.id
-
-    @ai.error
-    async def ai_error(self, ctx, error):
-        if isinstance(error, commands.CommandOnCooldown):
-            await ctx.send("Your cooldown will end after **{:.2f}s**".format(error.retry_after))
-
-    @commands.command()
-    @commands.has_permissions(kick_members=True)
-    async def kickai(self, ctx):
-        if ctx.guild.id in self.ai:
-            del self.ai[ctx.guild.id]
-            await ctx.send("AI has been cleared")
-        else:
-            await ctx.send("No one is using the AI")
-
-
-async def setup(bot):
-    await bot.add_cog(casual(bot))
+            await ctx.send("https://tenor.com/view/megumi-fushiguro-
